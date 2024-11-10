@@ -7,23 +7,22 @@
 FixedGrid::FixedGrid()
 {
     // init cellMatrix matrix
-    float deltaX = 0;
-    float deltaY = 0;
+    float dx = 0;
+    float dy = 0;
     for (int row = 0; row < GRID_ROWS; ++row)
     {
-        deltaX = 0;
+        dx = 0;
         vector<Rectangle> tmp;
         for (int col = 0; col < GRID_COLS; ++col)
         {
-            tmp.push_back((Rectangle) { offsetX + deltaX,
-                                        offsetY + deltaY,
+            tmp.push_back((Rectangle) { offsetX + dx,
+                                        offsetY + dy,
                                         DIA_CIRCLE,
                                         DIA_CIRCLE });
-
-            deltaX += DIA_CIRCLE;
+            dx += DIA_CIRCLE;
         }
         cellMatrix.push_back(tmp);
-        deltaY += DIA_CIRCLE;
+        dy += DIA_CIRCLE;
     }
 }
 
@@ -33,7 +32,6 @@ FixedGrid::~FixedGrid() { }
 /*
  * Class methods
  */
-
 void FixedGrid::drawGridCells()
 {
     for (int row = 0; row < GRID_ROWS; ++row)
@@ -48,30 +46,29 @@ void FixedGrid::drawGridCells()
 
 void FixedGrid::drawGrid()
 {
-    // Watch out!!!  shadowing for offsetX and offsetY
     const uint offsetX = (WIDTH - GRID_COLS * DIA_CIRCLE) / 2 + DIA_CIRCLE;
     const uint offsetY = (HEIGHT - GRID_ROWS * DIA_CIRCLE) / 2 + DIA_CIRCLE;
-    uint deltaX = 0;
-    uint deltaY = 0;
+    uint dx = 0;
+    uint dy = 0;
     Color gridColor = RED;
 
     // draw horizontal lines
     for (int row = 0; row < GRID_ROWS - 1; ++row)
     {
         DrawLine(offsetX - DIA_CIRCLE,
-                 offsetY + deltaY,
+                 offsetY + dy,
                  offsetX - DIA_CIRCLE + GRID_COLS * DIA_CIRCLE,
-                 offsetY + deltaY, gridColor);
-        deltaY += DIA_CIRCLE;
+                 offsetY + dy, gridColor);
+        dy += DIA_CIRCLE;
     }
     // draw vertical lines
     for (int col = 0; col < GRID_COLS - 1; ++col)
     {
-        DrawLine(offsetX + deltaX,
+        DrawLine(offsetX + dx,
                  offsetY - DIA_CIRCLE,
-                 offsetX + deltaX,
+                 offsetX + dx,
                  offsetY - DIA_CIRCLE + GRID_ROWS * DIA_CIRCLE, gridColor);
-        deltaX += DIA_CIRCLE;
+        dx += DIA_CIRCLE;
     }
 
     // TODO: draw borders

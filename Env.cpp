@@ -1,42 +1,38 @@
 #include <iostream>
-#include <stdlib.h>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 #include "Env.h"
 
 /*
  * Constructor and Destructor
  */
-
 Env::Env()
 {
     InitWindow(WIDTH, HEIGHT, TITLE);
     SetTargetFPS(FPS);
     initRandomObj(NUM_CIRCLES);
-
     // main loop
     while (!WindowShouldClose())
     {
         // update
         updateGridMatrix();
-
+        updatePos();
         // draw
         BeginDrawing();
         ClearBackground(DARKGRAY);
         fixedGrid.drawGridCells();
         drawCircles();
-        checkForColl(); // TODO: rename (check + repel in one func)
-        updateDirection();
+
+        checkForColl();
+        checkForBorders();
         EndDrawing();
     }
 }
-
-Env::~Env() { }
 
 
 /*
  * Class methods
  */
-
 void Env::updateGridMatrix()
 {
     for (int row = 0; row < GRID_ROWS; ++row)
@@ -47,15 +43,12 @@ void Env::updateGridMatrix()
             vector<uint> indicesOnRec;
             for (int i = 0; i < NUM_CIRCLES; ++i)
             {
-                Vector2 circleCenter = { obj.at(i).x, obj.at(i).y };
+                Vector2 circleCenter = { circles.at(i).pos.x, circles.at(i).pos.y };
                 Rectangle currRec = fixedGrid.getCellMatrix()->at(row).at(col);
                 if (CheckCollisionPointRec(circleCenter, currRec))
                 {
-#if DEBUG
-                    cout << "Index " << i << " located at: row=" << row << " and col=" << col << endl;
-#endif
-                    obj.at(i).row = row;
-                    obj.at(i).col = col;
+                    circles.at(i).row = row;
+                    circles.at(i).col = col;
                     indicesOnRec.push_back(i);
                 }
             }
@@ -63,40 +56,14 @@ void Env::updateGridMatrix()
         }
         fixedGrid.getIndexMatrix()->push_back(currRow);
     }
-
-#if DEBUG
-    // prints index matrix
-    for (int row = 0; row < GRID_ROWS; ++row)
-    {
-        for (int col = 0; col < GRID_COLS; ++col)
-        {
-            vector<uint> indicesOnRec = fixedGrid.getIndexMatrix()->at(row).at(col);
-            cout << "[";
-            uint tabCtr = 4;
-            for (int i = 0; i < indicesOnRec.size(); ++i)
-            {
-                cout << indicesOnRec.at(i) << ", ";
-                tabCtr--;
-            }
-            cout << "]";
-            for (int i = 0; i < tabCtr; ++i)
-                cout << "\t";
-        }
-        cout << endl;
-    }
-#endif
 }
 
-void Env::updateDirection()
+
+void Env::updatePos()
 {
-    for (int i = 0; i < NUM_CIRCLES; ++i)
+    for (Circle& currCirc : circles)
     {
-//        obj.at(i).direction = Vector2Add(obj.at(i).direction,
-//                                            obj.at(i).direction);
-#if DEBUG
-//        DrawLineV(obj.at(i).getPos(),
-//                  obj.at(i).getDir(), GREEN);
-#endif
+        currCirc.pos = Vector2Add(currCirc.pos, currCirc.velocity);
     }
 }
 
@@ -105,18 +72,31 @@ void Env::checkSurr(uint currIndex)
     // calcs dist of two circles
     auto calcDist = [&](uint indexA, uint indexB) -> float
     {
-        Vector2 a = { obj.at(indexA).x, obj.at(indexA).y };
-        Vector2 b = { obj.at(indexB).x, obj.at(indexB).y };
+        Vector2 a = { circles.at(indexA).pos.x, circles.at(indexA).pos.y };
+        Vector2 b = { circles.at(indexB).pos.x, circles.at(indexB).pos.y };
         return Vector2Distance(a, b);
     };
 
     // when objects overlap: repel
     auto repel = [&](uint indexA, uint indexB, float dist) -> void
     {
-        Vector2 vecA = obj.at(indexA).getPos();
-        Vector2 vecB = obj.at(indexB).getPos();
-        Vector2 ab = Vector2Lerp(vecA, vecB, 1);
-        DrawLineV(vecA, ab, GREEN);
+        Vector2 vecA = circles.at(indexA).getPos();
+        Vector2 vecB = circles.at(indexB).getPos();
+        float overlap = (2 * RAD_CIRCLE - Vector2Length(Vector2Subtract(vecA, vecB))) / 2;
+        Vector2 connA = Vector2Subtract(vecA, vecB);
+        Vector2 connB = Vector2Subtract(vecB, vecA);
+        connA = Vector2Scale(connA, overlap / Vector2Length(connA));
+        connB = Vector2Scale(connB, overlap / Vector2Length(connB));
+        Vector2 dirA = Vector2Add(vecA, connA);
+        Vector2 dirB = Vector2Add(vecB, connB);
+#ifdef DEBUG
+        DrawLineEx(vecA, dirA, 2, RED);
+        DrawLineEx(vecB, dirB, 2, RED);
+#endif
+        vecA = dirA;
+        vecB = dirB;
+        circles.at(indexA).setPos(vecA);
+        circles.at(indexB).setPos(vecB);
     };
 
     // check if surrounding cells contain objects
@@ -127,10 +107,10 @@ void Env::checkSurr(uint currIndex)
             try // try to access surrounding cells
             {
                 // check if surrounding cell contains objects
-                uint currX = obj.at(currIndex).row + x;
-                uint currY = obj.at(currIndex).col + y;
+                uint currX = circles.at(currIndex).row + x;
+                uint currY = circles.at(currIndex).col + y;
                 vector<uint> indexVector = fixedGrid.getIndexMatrix()->at(currX).at(currY);
-                if (indexVector.size() > 0)
+                if (!indexVector.empty())
                 {
                     for (uint currIndInVec : indexVector)
                     {
@@ -140,15 +120,15 @@ void Env::checkSurr(uint currIndex)
                         float dist = calcDist(currIndex, currIndInVec);
                         if (dist <= DIA_CIRCLE) // Overlap! -> repel
                         {
-#if DEBUG
-                            cout << "currIndex: " << currIndex << " overlapping with index: " << currIndInVec << " dist: " << dist << endl;
-#endif
                             repel(currIndex, currIndInVec, dist);
                         }
                     }
                 }
+
+                // check for border collisions
+
             }
-            catch (out_of_range&) { continue; }
+            catch (out_of_range&) { }
         }
     }
 }
@@ -161,20 +141,27 @@ void Env::checkForColl()
     }
 }
 
+void Env::checkForBorders()
+{
+    uint borderLeftX = 0;
+    for (Circle& currCirc : circles)
+    {
+
+    }
+}
+
 void Env::initRandomObj(const uint numObj)
 {
     srand(time(NULL));
-#if DEBUG
-        cout << "i\t\tx\t\ty" << endl << "---------------------" << endl;
-#endif
     for (int i = 0; i < numObj; ++i)
     {
         float randX = rand() % GRID_WIDTH + fixedGrid.getOffsetX();
         float randY = rand() % GRID_HEIGHT + fixedGrid.getOffsetY();
-#if DEBUG
-            cout << i << "\t\t" << randX << "\t\t" << randY << endl;
-#endif
-        obj.push_back((Circle) { randX, randY, RAD_CIRCLE, (Vector2) { randX, randY }, (uint)i, BLUE });
+        circles.push_back((Circle) { (Vector2) { randX, randY },
+                    RAD_CIRCLE,
+                    (Vector2) { 0, 50 },
+                        (uint)i,
+                        BLUE });
     }
 }
 
@@ -182,11 +169,13 @@ void Env::drawCircles()
 {
     for (int i = 0; i < NUM_CIRCLES; ++i)
     {
-        DrawCircle(obj.at(i).x,
-                   obj.at(i).y,
-                   obj.at(i).radius,
-                   obj.at(i).color);
+        DrawCircle(circles.at(i).pos.x,
+                   circles.at(i).pos.y,
+                   circles.at(i).radius,
+                   circles.at(i).color);
     }
 }
+
+
 
 

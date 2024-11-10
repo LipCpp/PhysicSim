@@ -3,23 +3,20 @@
 
 #include "constants.h"
 
-
-class Circle
+struct Circle
 {
-public:
-    Circle();
-    Circle(float x, float y, float radius, Vector2 dir, uint index, const Color &color);
+    Circle() = default;
+    Circle(Vector2 pos, float radius, Vector2 velocity, uint index, Color color);
     ~Circle();
-public:
-    float x;
-    float y;
     float radius;
-    Vector2 direction;
+    Vector2 pos;
+    Vector2 velocity;
     Color color;
     uint index;
     uint row;
     uint col;
     Vector2 getPos();
+    void setPos(Vector2 newPos);
     Vector2 getDir();
 };
 

@@ -13,7 +13,7 @@ typedef unsigned int uint;
 #define HEIGHT 500
 #define TITLE "Physics Simulation (v 0.1.0)"
 #define FPS 1
-#define NUM_CIRCLES 12   // for debug opt.: 10
+#define NUM_CIRCLES 20   // for debug opt.: 10
 #define GRID_ROWS 10     // debug: 5
 #define GRID_COLS 10    // debug: 10
 const uint RAD_CIRCLE = 20;

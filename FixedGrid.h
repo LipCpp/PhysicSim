@@ -5,13 +5,11 @@
 #include <list>
 #include "constants.h"
 
-
 class FixedGrid
 {
 public:
     FixedGrid();
     ~FixedGrid();
-public:
     void drawGridCells();
     const uint getOffsetX() const;
     const uint getOffsetY() const;

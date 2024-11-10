@@ -4,13 +4,11 @@
 /*
  * Constructors and destr.
  */
-Circle::Circle() {}
 
-Circle::Circle(float x, float y, float radius, Vector2 dir, uint index, const Color &color) :
-    x(x),
-    y(y),
+Circle::Circle(Vector2 pos, float radius, Vector2 velocity, uint index, Color color) :
+    pos(pos),
     radius(radius),
-    direction(dir),
+    velocity(velocity),
     index(index),
     color(color)
 {}
@@ -21,6 +19,8 @@ Circle::~Circle() { }
 /*
  * Class methods
  */
-Vector2 Circle::getPos() { return (Vector2) { x, y }; }
+Vector2 Circle::getPos() { return pos; }
 
-Vector2 Circle::getDir() { return direction; }
+void Circle::setPos(Vector2 newPos) { pos = newPos; }
+
+Vector2 Circle::getDir() { return velocity; }
